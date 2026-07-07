@@ -52,11 +52,17 @@ else
 fi
 "$VENV/bin/pip" install --quiet --upgrade pip >/dev/null
 
-# 3. Install the package (also pulls pwm-agent-core once it's a published dist).
+# 3. Install the package: PyPI first (also pulls pwm-agent-core), GitHub fallback
+#    (covers packages not yet published to PyPI — deps still resolve from PyPI).
 say "Installing $PKG…"
-"$VENV/bin/pip" install --quiet "$PKG" \
-  || die "install failed — check network access to PyPI"
-ok "Installed $PKG"
+if "$VENV/bin/pip" install --quiet "$PKG" 2>/dev/null; then
+  ok "Installed $PKG (PyPI)"
+else
+  say "$PKG not available on PyPI yet — installing from GitHub…"
+  "$VENV/bin/pip" install --quiet "$PKG @ https://github.com/integritynoble/$PKG/archive/refs/heads/main.zip" \
+    || die "install failed — check network access to PyPI/GitHub"
+  ok "Installed $PKG (GitHub)"
+fi
 
 # 4. Expose the command on PATH.
 mkdir -p "$BIN_DIR"
